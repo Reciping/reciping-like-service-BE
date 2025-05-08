@@ -11,5 +11,4 @@ services:
       - mongodata:/data/db
 
 volumes:
-  pgdata:
   mongodata:
