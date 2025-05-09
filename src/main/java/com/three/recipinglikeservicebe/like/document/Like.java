@@ -1,27 +1,33 @@
 package com.three.recipinglikeservicebe.like.document;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 @Document(collection = "likes")
+@CompoundIndex(def = "{'user_id': 1, 'recipe_id': 1}", name = "user_recipe_idx")
 public class Like {
 
     @Id
-    private String id; // MongoDB에서는 String이 기본
+    private String id;
 
+    @Field("user_id")
     private Long userId;
+
+    @Field("recipe_id")
     private Long recipeId;
+
+    @Field("created_at")
     private LocalDateTime createdAt;
 
-    // userId, recipeId를 받는 생성자 + createdAt 자동 설정
     public Like(Long userId, Long recipeId) {
         this.userId = userId;
         this.recipeId = recipeId;

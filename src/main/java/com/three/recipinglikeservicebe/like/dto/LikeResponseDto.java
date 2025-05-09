@@ -1,10 +1,10 @@
 package com.three.recipinglikeservicebe.like.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
-@Getter
-@NoArgsConstructor
-public class LikeResponseDto {
-
-}
+public record LikeResponseDto(
+        String id,
+        Long userId,
+        Long recipeId,
+        LocalDateTime createdAt
+) {}

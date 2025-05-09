@@ -1,8 +1,9 @@
+// com.three.recipinglikeservicebe.like.controller.LikeController
 package com.three.recipinglikeservicebe.like.controller;
 
-import com.three.recipinglikeservicebe.like.document.Like;
+import com.three.recipinglikeservicebe.like.dto.*;
+import com.three.recipinglikeservicebe.like.dto.RecipeLikeStatusResponseDto;
 import com.three.recipinglikeservicebe.like.service.LikeService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,20 +18,37 @@ public class LikeController {
         this.likeService = likeService;
     }
 
+    // 1. 좋아요 생성
     @PostMapping
-    public Like createLike(@RequestBody Like like, HttpServletRequest request) {
-        String userIdFromToken = (String) request.getAttribute("userId");
-        like.setUserId(Long.parseLong(userIdFromToken));
-        return likeService.createLike(like);
+    public LikeResponseDto createLike(@RequestBody LikeRequestDto request) {
+        return likeService.createLike(request);
     }
 
+    // 2. 좋아요 전체 조회
     @GetMapping
-    public List<Like> getLikes() {
+    public List<LikeResponseDto> getAllLikes() {
         return likeService.getAllLikes();
     }
 
-    @DeleteMapping("/{id}")
-    public void deleteLike(@PathVariable String id) {
-        likeService.deleteLike(id);
+    // 3. 좋아요 삭제
+    @DeleteMapping("/{likeId}")
+    public void deleteLike(@PathVariable String likeId) {
+        likeService.deleteLike(likeId);
     }
+
+    // 4. 좋아요 상태 조회 (총 개수 + 내가 눌렀는지)
+    @GetMapping("/recipe/{recipeId}/status")
+    public RecipeLikeStatusResponseDto getRecipeLikeStatus(
+            @PathVariable Long recipeId,
+            @RequestParam Long userId) {
+        return likeService.getRecipeLikeStatus(recipeId, userId);
+    }
+
+    @PostMapping("/recipe/status-list")
+    public List<RecipeLikeStatusResponseDto> getLikeStatusForRecipes(
+            @RequestBody RecipeLikeStatusListRequestDto requestDto
+    ) {
+        return likeService.getLikeStatuses(requestDto);
+    }
+
 }
