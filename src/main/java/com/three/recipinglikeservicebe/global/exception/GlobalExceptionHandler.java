@@ -1,42 +1,27 @@
 package com.three.recipinglikeservicebe.global.exception;
 
-import com.three.recipinglikeservicebe.common.dto.ExceptionDto;
-import com.three.recipinglikeservicebe.global.exception.custom.UserNotFoundException;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.extern.slf4j.Slf4j;
+import com.three.recipinglikeservicebe.global.exception.custom.LikeAlreadyExistsException;
+import com.three.recipinglikeservicebe.global.exception.custom.LikeNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@Slf4j(topic = "GlobalExceptionHandler")
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ExceptionDto> userNotFoundException(final UserNotFoundException e) {
-        log.error("UserNotFoundException: ", e);
-        return createResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+    @ExceptionHandler(LikeAlreadyExistsException.class)
+    public ResponseEntity<String> handleAlreadyExists(LikeAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ExceptionDto> entityNotFoundException(final EntityNotFoundException e) {
-        log.error("EntityNotFoundException: ", e);
-        return createResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+    @ExceptionHandler(LikeNotFoundException.class)
+    public ResponseEntity<String> handleNotFound(LikeNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ExceptionDto> exception(final Exception e) {
-        log.error("Exception: ", e);
-        return createResponse(HttpStatus.BAD_REQUEST, e.getMessage());
-    }
-
-    private ResponseEntity<ExceptionDto> createResponse(
-            final HttpStatus status,
-            final String message
-    ) {
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(new ExceptionDto(status, message));
+    public ResponseEntity<String> handleException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + ex.getMessage());
     }
 }

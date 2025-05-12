@@ -1,8 +1,12 @@
+// com.three.recipinglikeservicebe.like.repository.LikeRepository
 package com.three.recipinglikeservicebe.like.repository;
 
-import com.three.recipinglikeservicebe.like.entity.Like;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.three.recipinglikeservicebe.like.document.Like;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
 
-public interface LikeRepository extends JpaRepository<Like, Long> {
-
+@Repository
+public interface LikeRepository extends MongoRepository<Like, String> {
+    boolean existsByUserIdAndRecipeId(Long userId, Long recipeId);
+    long countByRecipeId(Long recipeId);
 }
