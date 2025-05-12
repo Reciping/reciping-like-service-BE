@@ -54,7 +54,7 @@ public class LikeService {
         );
     }
 
-    public List<RecipeLikeStatusResponseDto> getLikeStatuses(RecipeLikeStatusListRequestDto requestDto) {
+    public List<RecipeLikeStatusResponseDto> getLikeStatusList(RecipeLikeStatusListRequestDto requestDto) {
         return requestDto.recipeIdList().stream()
                 .map(recipeId -> {
                     boolean liked = likeRepository.existsByUserIdAndRecipeId(requestDto.userId(), recipeId);

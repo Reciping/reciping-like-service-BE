@@ -45,10 +45,10 @@ public class LikeController {
     }
 
     @PostMapping("/recipe/status-list")
-    public List<RecipeLikeStatusResponseDto> getLikeStatusForRecipes(
+    public RecipeLikeStatusListResponseDto getLikeStatusForRecipes(
             @RequestBody RecipeLikeStatusListRequestDto requestDto
     ) {
-        return likeService.getLikeStatuses(requestDto);
+        return new RecipeLikeStatusListResponseDto(likeService.getLikeStatusList(requestDto));
     }
 
 }
