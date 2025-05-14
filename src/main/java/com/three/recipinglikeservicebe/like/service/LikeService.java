@@ -38,6 +38,10 @@ public class LikeService {
         likeRepository.deleteById(likeId);
     }
 
+    public void deleteLikeByUserAndRecipe(Long userId, Long recipeId) {
+        likeRepository.deleteByUserIdAndRecipeId(userId, recipeId);
+    }
+
     // 4. 특정 게시글 좋아요 상태 조회
     public RecipeLikeStatusResponseDto getRecipeLikeStatus(Long recipeId, Long userId) {
         long likeCount = likeRepository.countByRecipeId(recipeId);
