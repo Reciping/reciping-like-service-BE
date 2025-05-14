@@ -4,6 +4,7 @@ package com.three.recipinglikeservicebe.like.controller;
 import com.three.recipinglikeservicebe.like.dto.*;
 import com.three.recipinglikeservicebe.like.dto.RecipeLikeStatusResponseDto;
 import com.three.recipinglikeservicebe.like.service.LikeService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,6 +35,14 @@ public class LikeController {
     @DeleteMapping("/{likeId}")
     public void deleteLike(@PathVariable String likeId) {
         likeService.deleteLike(likeId);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteLikeByUserAndRecipe(
+            @RequestBody LikeRequestDto likeRequestDto
+    ) {
+        likeService.deleteLikeByUserAndRecipe(likeRequestDto.userId(), likeRequestDto.recipeId());
+        return ResponseEntity.noContent().build();
     }
 
     // 4. 좋아요 상태 조회 (총 개수 + 내가 눌렀는지)
