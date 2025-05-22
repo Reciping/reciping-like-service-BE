@@ -1,11 +1,20 @@
 // com.three.recipinglikeservicebe.like.controller.LikeController
 package com.three.recipinglikeservicebe.like.controller;
 
+import com.three.recipinglikeservicebe.global.logger.CustomLogger;
+import com.three.recipinglikeservicebe.like.document.Like;
 import com.three.recipinglikeservicebe.like.dto.*;
 import com.three.recipinglikeservicebe.like.dto.RecipeLikeStatusResponseDto;
 import com.three.recipinglikeservicebe.like.service.LikeService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.three.recipinglikeservicebe.global.logger.CustomLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.three.recipinglikeservicebe.global.logger.LogType;
 
 import java.util.List;
 
@@ -21,8 +30,21 @@ public class LikeController {
 
     // 1. 좋아요 생성
     @PostMapping
-    public LikeResponseDto createLike(@RequestBody LikeRequestDto request) {
-        return likeService.createLike(request);
+    public LikeResponseDto createLike(@RequestBody LikeRequestDto request, HttpServletRequest httpRequest) {
+        LikeResponseDto response = likeService.createLike(request);
+
+        CustomLogger.track(
+                LogType.CREATE_LIKE,
+                "/api/v1/likes",
+                "POST",
+                String.valueOf(request.userId()),
+                null,
+                String.valueOf(request.recipeId()),
+                "-",
+                httpRequest
+        );
+
+        return response;
     }
 
     // 2. 좋아요 전체 조회
@@ -39,9 +61,22 @@ public class LikeController {
 
     @DeleteMapping
     public ResponseEntity<Void> deleteLikeByUserAndRecipe(
-            @RequestBody LikeRequestDto likeRequestDto
+            @RequestBody LikeRequestDto likeRequestDto,
+            HttpServletRequest httpRequest
     ) {
         likeService.deleteLikeByUserAndRecipe(likeRequestDto.userId(), likeRequestDto.recipeId());
+
+        CustomLogger.track(
+                LogType.DELETE_LIKE,
+                "/api/v1/likes",
+                "DELETE",
+                String.valueOf(likeRequestDto.userId()),
+                null,
+                String.valueOf(likeRequestDto.recipeId()),
+                "-",
+                httpRequest
+        );
+
         return ResponseEntity.noContent().build();
     }
 
@@ -49,7 +84,19 @@ public class LikeController {
     @GetMapping("/recipe/{recipeId}/status")
     public RecipeLikeStatusResponseDto getRecipeLikeStatus(
             @PathVariable Long recipeId,
-            @RequestParam Long userId) {
+            @RequestParam Long userId,
+            HttpServletRequest httpRequest) {
+        CustomLogger.track(
+                LogType.GET_LIKE,
+                "/api/v1/likes/recipe/" + recipeId + "/status",
+                "GET",
+                String.valueOf(userId),
+                null,
+                String.valueOf(recipeId),
+                null,
+                httpRequest
+        );
+
         return likeService.getRecipeLikeStatus(recipeId, userId);
     }
 
