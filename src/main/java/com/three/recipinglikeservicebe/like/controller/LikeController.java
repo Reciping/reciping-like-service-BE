@@ -23,6 +23,7 @@ import java.util.List;
 public class LikeController {
 
     private final LikeService likeService;
+    private static final Logger logger = LoggerFactory.getLogger(LikeController.class);
 
     public LikeController(LikeService likeService) {
         this.likeService = likeService;
@@ -34,6 +35,7 @@ public class LikeController {
         LikeResponseDto response = likeService.createLike(request);
 
         CustomLogger.track(
+                logger,
                 LogType.CREATE_LIKE,
                 "/api/v1/likes",
                 "POST",
@@ -67,6 +69,7 @@ public class LikeController {
         likeService.deleteLikeByUserAndRecipe(likeRequestDto.userId(), likeRequestDto.recipeId());
 
         CustomLogger.track(
+                logger,
                 LogType.DELETE_LIKE,
                 "/api/v1/likes",
                 "DELETE",
@@ -87,6 +90,7 @@ public class LikeController {
             @RequestParam Long userId,
             HttpServletRequest httpRequest) {
         CustomLogger.track(
+                logger,
                 LogType.GET_LIKE,
                 "/api/v1/likes/recipe/" + recipeId + "/status",
                 "GET",

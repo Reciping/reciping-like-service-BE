@@ -4,11 +4,15 @@ import com.three.recipinglikeservicebe.global.util.CustomIpUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Slf4j
 public class CustomLogger {
 
     public static void track(
+            Logger logger,
             LogType logType,
             String path,
             String method,
@@ -18,8 +22,11 @@ public class CustomLogger {
             String payload,
             HttpServletRequest request
     ) {
-        log.info(String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
+        LogActorType actorType = resolveActorRole();
+
+        logger.info(String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
                 logType.name(),                               // 로그 타입
+                actorType.name(),
                 LocalDateTime.now(),                          // 시간
                 path,                                         // 요청 경로
                 method,                                       // GET, POST 등
@@ -31,5 +38,23 @@ public class CustomLogger {
                 request.getHeader("User-Agent"),          // 브라우저
                 request.getHeader("Referer")              // 이전 페이지
         ));
+    }
+    private static LogActorType resolveActorRole() {
+        try {
+            var authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || authentication.getAuthorities() == null) {
+                return LogActorType.GUEST;
+            }
+
+            for (GrantedAuthority authority : authentication.getAuthorities()) {
+                String role = authority.getAuthority(); // e.g. ROLE_ADMIN
+                if (role.contains("ADMIN")) return LogActorType.ADMIN;
+                if (role.contains("USER")) return LogActorType.USER;
+            }
+
+            return LogActorType.GUEST;
+        } catch (Exception e) {
+            return LogActorType.GUEST;
+        }
     }
 }

@@ -1,27 +1,31 @@
-// com.three.recipinglikeservicebe.like.service.LikeService
 package com.three.recipinglikeservicebe.like.service;
 
 import com.three.recipinglikeservicebe.like.document.Like;
 import com.three.recipinglikeservicebe.like.dto.*;
 import com.three.recipinglikeservicebe.like.repository.LikeRepository;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Component
 public class LikeService {
-
     private final LikeRepository likeRepository;
+//    private final AuditLogger auditLogger;
 
     public LikeService(LikeRepository likeRepository) {
         this.likeRepository = likeRepository;
+//        this.auditLogger = auditLogger;
     }
 
-    // 1. 좋아요 생성
     public LikeResponseDto createLike(LikeRequestDto request) {
         Like like = new Like(request.userId(), request.recipeId());
         Like saved = likeRepository.save(like);
+
+//        auditLogger.info(String.format("사용자 %d가 레시피 %d에 좋아요 생성", request.userId(), request.recipeId()));
+
         return toResponse(saved);
     }
 
@@ -40,6 +44,8 @@ public class LikeService {
 
     public void deleteLikeByUserAndRecipe(Long userId, Long recipeId) {
         likeRepository.deleteByUserIdAndRecipeId(userId, recipeId);
+
+//        auditLogger.info(String.format("사용자 %d가 레시피 %d에 좋아요 취소", userId, recipeId));
     }
 
     // 4. 특정 게시글 좋아요 상태 조회
