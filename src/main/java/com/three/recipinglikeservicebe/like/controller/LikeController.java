@@ -1,17 +1,13 @@
-// com.three.recipinglikeservicebe.like.controller.LikeController
 package com.three.recipinglikeservicebe.like.controller;
 
 import com.three.recipinglikeservicebe.global.logger.CustomLogger;
-import com.three.recipinglikeservicebe.like.document.Like;
 import com.three.recipinglikeservicebe.like.dto.*;
 import com.three.recipinglikeservicebe.like.dto.RecipeLikeStatusResponseDto;
 import com.three.recipinglikeservicebe.like.service.LikeService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.three.recipinglikeservicebe.global.logger.CustomLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.three.recipinglikeservicebe.global.logger.LogType;
@@ -87,8 +83,9 @@ public class LikeController {
     @GetMapping("/recipe/{recipeId}/status")
     public RecipeLikeStatusResponseDto getRecipeLikeStatus(
             @PathVariable Long recipeId,
-            @RequestParam Long userId,
+            @RequestParam(value = "userId", required = false) Long userId,
             HttpServletRequest httpRequest) {
+
         CustomLogger.track(
                 logger,
                 LogType.GET_LIKE,

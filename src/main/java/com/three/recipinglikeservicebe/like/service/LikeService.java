@@ -51,7 +51,7 @@ public class LikeService {
     // 4. 특정 게시글 좋아요 상태 조회
     public RecipeLikeStatusResponseDto getRecipeLikeStatus(Long recipeId, Long userId) {
         long likeCount = likeRepository.countByRecipeId(recipeId);
-        boolean isLiked = likeRepository.existsByUserIdAndRecipeId(userId, recipeId);
+        boolean isLiked = (userId != null) && likeRepository.existsByUserIdAndRecipeId(userId, recipeId);
         return new RecipeLikeStatusResponseDto(recipeId, likeCount, isLiked);
     }
 
