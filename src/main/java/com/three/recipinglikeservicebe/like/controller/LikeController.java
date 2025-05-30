@@ -1,10 +1,13 @@
 package com.three.recipinglikeservicebe.like.controller;
 
 import com.three.recipinglikeservicebe.global.logger.CustomLogger;
+import com.three.recipinglikeservicebe.like.document.LikeCountDocument;
 import com.three.recipinglikeservicebe.like.dto.*;
 import com.three.recipinglikeservicebe.like.dto.RecipeLikeStatusResponseDto;
+import com.three.recipinglikeservicebe.like.service.LikeCountAggregationScheduler;
 import com.three.recipinglikeservicebe.like.service.LikeService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,15 +18,14 @@ import com.three.recipinglikeservicebe.global.logger.LogType;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/likes")
 public class LikeController {
 
     private final LikeService likeService;
-    private static final Logger logger = LoggerFactory.getLogger(LikeController.class);
+    private final LikeCountAggregationScheduler likeCountAggregationScheduler;
 
-    public LikeController(LikeService likeService) {
-        this.likeService = likeService;
-    }
+    private static final Logger logger = LoggerFactory.getLogger(LikeController.class);
 
     // 1. 좋아요 생성
     @PostMapping
@@ -55,6 +57,12 @@ public class LikeController {
     @DeleteMapping("/{likeId}")
     public void deleteLike(@PathVariable String likeId) {
         likeService.deleteLike(likeId);
+    }
+
+    @GetMapping("/counts")
+    public ResponseEntity<List<LikeCountDocument>> getAllLikeCounts() {
+        List<LikeCountDocument> counts = likeService.getAllLikeCounts();
+        return ResponseEntity.ok(counts);
     }
 
     @DeleteMapping
@@ -108,4 +116,10 @@ public class LikeController {
         return new RecipeLikeStatusListResponseDto(likeService.getLikeStatusList(requestDto));
     }
 
+    // 좋아요 수동 트리거
+    @PostMapping("/aggregate")
+    public ResponseEntity<Void> triggerLikeCountAggregation() {
+        likeCountAggregationScheduler.aggregateAndSaveLikeCountsManually();
+        return ResponseEntity.ok().build();
+    }
 }

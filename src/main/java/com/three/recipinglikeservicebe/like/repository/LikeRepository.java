@@ -7,7 +7,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LikeRepository extends MongoRepository<Like, String> {
+
     boolean existsByUserIdAndRecipeId(Long userId, Long recipeId);
     long countByRecipeId(Long recipeId);
     void deleteByUserIdAndRecipeId(Long userId, Long recipeId);
+
 }

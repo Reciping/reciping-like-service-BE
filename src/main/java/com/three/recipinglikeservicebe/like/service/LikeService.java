@@ -1,8 +1,11 @@
 package com.three.recipinglikeservicebe.like.service;
 
 import com.three.recipinglikeservicebe.like.document.Like;
+import com.three.recipinglikeservicebe.like.document.LikeCountDocument;
 import com.three.recipinglikeservicebe.like.dto.*;
+import com.three.recipinglikeservicebe.like.repository.LikeCountRepository;
 import com.three.recipinglikeservicebe.like.repository.LikeRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
@@ -10,14 +13,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Component
 public class LikeService {
+
     private final LikeRepository likeRepository;
+    private final LikeCountRepository likeCountRepository;
 //    private final AuditLogger auditLogger;
 
-    public LikeService(LikeRepository likeRepository) {
+    public LikeService(LikeRepository likeRepository, LikeCountRepository likeCountRepository) {
         this.likeRepository = likeRepository;
 //        this.auditLogger = auditLogger;
+        this.likeCountRepository = likeCountRepository;
     }
 
     public LikeResponseDto createLike(LikeRequestDto request) {
@@ -27,6 +32,10 @@ public class LikeService {
 //        auditLogger.info(String.format("사용자 %d가 레시피 %d에 좋아요 생성", request.userId(), request.recipeId()));
 
         return toResponse(saved);
+    }
+
+    public List<LikeCountDocument> getAllLikeCounts() {
+        return likeCountRepository.findAll();
     }
 
     // 2. 좋아요 전체 조회
