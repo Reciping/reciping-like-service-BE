@@ -40,10 +40,29 @@
         </encoder>
     </appender>
 
+    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${LOG_FILE}.json</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}.json</fileNamePattern>
+            <maxHistory>14</maxHistory>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
+
+    <appender name="LIKE_CONTROLLER_JSON_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/LikeController.json</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/LikeController.%d{yyyy-MM-dd}.json</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
+
     <!-- 루트 로거 -->
     <root level="INFO">
-        <appender-ref ref="FILE" />
-        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE"/>          <!-- CSV 로그 (DB용) -->
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="JSON_FILE"/>     <!-- JSON 로그 (Fluent Bit용) -->
     </root>
 
     <!-- LikeController 클래스에 대한 로거 -->
@@ -51,6 +70,7 @@
             name="com.three.recipinglikeservicebe.like.controller.LikeController"
             additivity="false"> <!-- (additivity 는 상위 패키지 로그 전파 여부)-->
         <appender-ref ref="LIKE_CONTROLLER_LOG" />
+        <appender-ref ref="LIKE_CONTROLLER_JSON_LOG" />
     </logger>
 
 

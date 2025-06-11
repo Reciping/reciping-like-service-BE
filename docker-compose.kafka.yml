@@ -1,0 +1,161 @@
+version: '3.8'
+services:
+  kafka1:
+    container_name: kafka1
+    image: confluentinc/cp-kafka:7.6.0
+    platform: linux/amd64
+    ports:
+      - "${KAFKA1_EXTERNAL_PORT}:9092"
+    volumes:
+      - ./kafka1-data:/var/lib/kafka/data
+    networks:
+      - kafka-net
+    healthcheck:
+      test: kafka-topics --bootstrap-server kafka1:29092 --list
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:29092,EXTERNAL://${HOST_IP}:${KAFKA1_EXTERNAL_PORT}
+      KAFKA_LISTENERS: INTERNAL://kafka1:29092,CONTROLLER://kafka1:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:29093,2@kafka2:29093,3@kafka3:29093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+
+  kafka2:
+    container_name: kafka2
+    image: confluentinc/cp-kafka:7.6.0
+    platform: linux/amd64
+    ports:
+      - "${KAFKA2_EXTERNAL_PORT}:9092"
+    volumes:
+      - ./kafka2-data:/var/lib/kafka/data
+    networks:
+      - kafka-net
+    healthcheck:
+      test: kafka-topics --bootstrap-server kafka2:29092 --list
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:29092,EXTERNAL://${HOST_IP}:${KAFKA2_EXTERNAL_PORT}
+      KAFKA_LISTENERS: INTERNAL://kafka2:29092,CONTROLLER://kafka2:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:29093,2@kafka2:29093,3@kafka3:29093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+
+  kafka3:
+    container_name: kafka3
+    image: confluentinc/cp-kafka:7.6.0
+    platform: linux/amd64
+    ports:
+      - "${KAFKA3_EXTERNAL_PORT}:9092"
+    volumes:
+      - ./kafka3-data:/var/lib/kafka/data
+    networks:
+      - kafka-net
+    healthcheck:
+      test: kafka-topics --bootstrap-server kafka3:29092 --list
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:29092,EXTERNAL://${HOST_IP}:${KAFKA3_EXTERNAL_PORT}
+      KAFKA_LISTENERS: INTERNAL://kafka3:29092,CONTROLLER://kafka3:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:29093,2@kafka2:29093,3@kafka3:29093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.1 # 버전을 명시하는 것이 좋습니다.
+    platform: linux/amd64
+    container_name: kafka-ui
+    ports:
+      - "${KAFKA_UI_PORT}:8080" # [수정] 컨테이너 내부 포트 8080으로 변경
+    restart: always
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ${PROFILE}
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:29092,kafka2:29092,kafka3:29092
+    networks:
+      - kafka-net
+    depends_on: # [수정] healthcheck를 기다리도록 변경
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+
+  # ----------------- Logging Stack (Fluent Bit, Loki, Grafana) -----------------
+  fluent-bit-agent:
+    image: fluent/fluent-bit:3.0
+    container_name: fluent-bit-agent
+    volumes:
+      - ./config/fluent-bit-agent.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./logs:/var/log/app # 애플리케이션 로그가 저장된 폴더를 마운트
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      - kafka-net
+
+  fluent-bit-consumer:
+    image: fluent/fluent-bit:3.0
+    container_name: fluent-bit-consumer
+    volumes:
+      - ./config/fluent-bit-consumer.conf:/fluent-bit/etc/fluent-bit.conf
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      loki:
+        condition: service_started
+    networks:
+      - kafka-net
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki-config.yaml:/etc/loki/config.yaml
+    command: -config.file=/etc/loki/config.yaml
+    networks:
+      - kafka-net
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - loki
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    driver: bridge

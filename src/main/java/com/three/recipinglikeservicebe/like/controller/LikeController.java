@@ -1,5 +1,6 @@
 package com.three.recipinglikeservicebe.like.controller;
 
+import com.three.recipinglikeservicebe.global.config.SecurityUtil;
 import com.three.recipinglikeservicebe.global.logger.CustomLogger;
 import com.three.recipinglikeservicebe.like.document.LikeCountDocument;
 import com.three.recipinglikeservicebe.like.dto.*;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.three.recipinglikeservicebe.global.logger.LogType;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class LikeController {
     private final LikeCountAggregationScheduler likeCountAggregationScheduler;
 
     private static final Logger logger = LoggerFactory.getLogger(LikeController.class);
+    private final SecurityUtil securityUtil;
 
     // 1. 좋아요 생성
     @PostMapping
@@ -49,18 +52,51 @@ public class LikeController {
 
     // 2. 좋아요 전체 조회
     @GetMapping
-    public List<LikeResponseDto> getAllLikes() {
+    public List<LikeResponseDto> getAllLikes(HttpServletRequest httpRequest) {
+        CustomLogger.track(
+                logger,
+                LogType.GET_LIKES,
+                "/api/v1/likes",
+                "GET",
+                securityUtil.getCurrentUserId(), // 관리자 등 특정 역할만 호출 가능할 경우를 대비
+                null,
+                "-",
+                "-",
+                httpRequest
+        );
         return likeService.getAllLikes();
     }
 
     // 3. 좋아요 삭제
     @DeleteMapping("/{likeId}")
-    public void deleteLike(@PathVariable String likeId) {
+    public void deleteLike(@PathVariable String likeId, HttpServletRequest httpRequest) {
+        CustomLogger.track(
+                logger,
+                LogType.DELETE_LIKE_BY_ID,
+                "/api/v1/likes/" + likeId,
+                "DELETE",
+                securityUtil.getCurrentUserId(),
+                null,
+                likeId,
+                "-",
+                httpRequest
+        );
         likeService.deleteLike(likeId);
     }
 
     @GetMapping("/counts")
-    public ResponseEntity<List<LikeCountDocument>> getAllLikeCounts() {
+    public ResponseEntity<List<LikeCountDocument>> getAllLikeCounts(HttpServletRequest httpRequest) {
+        CustomLogger.track(
+                logger,
+                LogType.GET_LIKE_COUNTS, // LogType에 추가 필요
+                "/api/v1/likes/counts",
+                "GET",
+                securityUtil.getCurrentUserId(),
+                null,
+                "-",
+                "-",
+                httpRequest
+        );
         List<LikeCountDocument> counts = likeService.getAllLikeCounts();
         return ResponseEntity.ok(counts);
     }
@@ -111,14 +147,41 @@ public class LikeController {
 
     @PostMapping("/recipe/status-list")
     public RecipeLikeStatusListResponseDto getLikeStatusForRecipes(
-            @RequestBody RecipeLikeStatusListRequestDto requestDto
+            @RequestBody RecipeLikeStatusListRequestDto requestDto,
+            HttpServletRequest httpRequest
     ) {
+        String recipeIdsPayload = requestDto.recipeIdList().stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+
+        CustomLogger.track(
+                logger,
+                LogType.GET_LIKE_STATUS_LIST, // LogType에 추가 필요
+                "/api/v1/likes/recipe/status-list",
+                "POST",
+                String.valueOf(requestDto.userId()),
+                null,
+                "multiple", // 대상이 여러 개임을 명시
+                "count:" + requestDto.recipeIdList().size(), // payload에 개수 등 요약 정보 기록
+                httpRequest
+        );
         return new RecipeLikeStatusListResponseDto(likeService.getLikeStatusList(requestDto));
     }
 
     // 좋아요 수동 트리거
     @PostMapping("/aggregate")
-    public ResponseEntity<Void> triggerLikeCountAggregation() {
+    public ResponseEntity<Void> triggerLikeCountAggregation(HttpServletRequest httpRequest) {
+        CustomLogger.track(
+                logger,
+                LogType.TRIGGER_AGGREGATION, // LogType에 추가 필요
+                "/api/v1/likes/aggregate",
+                "POST",
+                securityUtil.getCurrentUserId(), // 관리자 기능이므로 호출자 기록이 필수
+                null,
+                "-",
+                "manual_trigger",
+                httpRequest
+        );
         likeCountAggregationScheduler.aggregateAndSaveLikeCountsManually();
         return ResponseEntity.ok().build();
     }
