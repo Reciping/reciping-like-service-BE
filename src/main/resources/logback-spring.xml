@@ -2,7 +2,7 @@
 <configuration scan="true">
 
     <!-- 절대 경로 설정 -->
-    <property name="LOG_PATH" value="/var/log/reciping/like-service"/> <!-- 디렉토리 경로 -> 여기에 로그가 저장 -->
+    <property name="LOG_PATH" value="${LOG_PATH:-/var/log/reciping/like-service}"/>
     <property name="LOG_FILE" value="like-service-app"/>  <!-- 로그 파일의 이름 -> 나중에 /var/log/reciping/user-service/user-service-app.log로 치환됨 -->
 
     <!-- 콘솔 로그 Appender -->
@@ -12,18 +12,19 @@
         </encoder>
     </appender>
 
-    <!-- 파일 기반 Appender(=파일에 로그를 기록) : 로그를 어디에 출력할지 설정하는 부분 -->
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/${LOG_FILE}.log</file> <!-- 출력 예시) /var/log/reciping/user-service/user-service-app.log -->
-
+    <appender name="CSV_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${LOG_FILE}.csv</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}.csv</fileNamePattern>
             <maxHistory>14</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n</pattern>
-            <immediateFlush>true</immediateFlush> <!-- 로그를 버퍼에 모았다가 쓰지 않고, 매번 바로 디스크에 flush(쓰기 완료)하겠다는 뜻 -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}\t%level\t%thread\t%logger{36}\t%msg\t%X{traceId}%n</pattern>
         </encoder>
+    </appender>
+
+    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
     </appender>
 
     <!-- 커스텀 파일 로그 기반 Appender(LikeController 에 대한 커스텀 파일 로그 기록) -->
@@ -40,37 +41,24 @@
         </encoder>
     </appender>
 
-    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/${LOG_FILE}.json</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}.json</fileNamePattern>
-            <maxHistory>14</maxHistory>
-        </rollingPolicy>
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
-    </appender>
-
-    <appender name="LIKE_CONTROLLER_JSON_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/LikeController.json</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/LikeController.%d{yyyy-MM-dd}.json</fileNamePattern>
-            <maxHistory>30</maxHistory>
-        </rollingPolicy>
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
-    </appender>
 
     <!-- 루트 로거 -->
     <root level="INFO">
-        <appender-ref ref="FILE"/>          <!-- CSV 로그 (DB용) -->
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="JSON_FILE"/>     <!-- JSON 로그 (Fluent Bit용) -->
+        <appender-ref ref="CSV_FILE"/>          <!-- CSV 로그 (DB용) -->
+        <appender-ref ref="JSON_STDOUT"/>     <!-- JSON 로그 (Fluent Bit용) -->
     </root>
+
+    <logger name="ERROR_LOGGER" level="ERROR" additivity="false">
+        <appender-ref ref="CSV_FILE"/>          <!-- CSV 로그 (DB용) -->
+        <appender-ref ref="JSON_STDOUT"/>
+    </logger>
 
     <!-- LikeController 클래스에 대한 로거 -->
     <logger level="INFO"
             name="com.three.recipinglikeservicebe.like.controller.LikeController"
             additivity="false"> <!-- (additivity 는 상위 패키지 로그 전파 여부)-->
         <appender-ref ref="LIKE_CONTROLLER_LOG" />
-        <appender-ref ref="LIKE_CONTROLLER_JSON_LOG" />
+        <appender-ref ref="JSON_STDOUT" />
     </logger>
 
 

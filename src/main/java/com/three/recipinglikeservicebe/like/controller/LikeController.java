@@ -1,10 +1,8 @@
 package com.three.recipinglikeservicebe.like.controller;
 
-import com.three.recipinglikeservicebe.global.config.SecurityUtil;
 import com.three.recipinglikeservicebe.global.logger.CustomLogger;
 import com.three.recipinglikeservicebe.like.document.LikeCountDocument;
 import com.three.recipinglikeservicebe.like.dto.*;
-import com.three.recipinglikeservicebe.like.dto.RecipeLikeStatusResponseDto;
 import com.three.recipinglikeservicebe.like.service.LikeCountAggregationScheduler;
 import com.three.recipinglikeservicebe.like.service.LikeService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import com.three.recipinglikeservicebe.global.logger.LogType;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,161 +25,160 @@ public class LikeController {
     private final LikeCountAggregationScheduler likeCountAggregationScheduler;
 
     private static final Logger logger = LoggerFactory.getLogger(LikeController.class);
-    private final SecurityUtil securityUtil;
+    private static final Logger errorLogger = LoggerFactory.getLogger("ERROR_LOGGER");
 
-    // 1. 좋아요 생성
     @PostMapping
     public LikeResponseDto createLike(@RequestBody LikeRequestDto request, HttpServletRequest httpRequest) {
-        LikeResponseDto response = likeService.createLike(request);
+        try {
+            LikeResponseDto response = likeService.createLike(request);
 
-        CustomLogger.track(
-                logger,
-                LogType.CREATE_LIKE,
-                "/api/v1/likes",
-                "POST",
-                String.valueOf(request.userId()),
-                null,
-                String.valueOf(request.recipeId()),
-                "-",
-                httpRequest
-        );
+            CustomLogger.track(
+                    logger,
+                    LogType.CREATE_LIKE,
+                    String.valueOf(request.recipeId()),
+                    "-",
+                    httpRequest
+            );
 
-        return response;
+            return response;
+        } catch (Exception e) {
+            errorLogger.error("Error in createLike(): {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
-    // 2. 좋아요 전체 조회
     @GetMapping
     public List<LikeResponseDto> getAllLikes(HttpServletRequest httpRequest) {
-        CustomLogger.track(
-                logger,
-                LogType.GET_LIKES,
-                "/api/v1/likes",
-                "GET",
-                securityUtil.getCurrentUserId(), // 관리자 등 특정 역할만 호출 가능할 경우를 대비
-                null,
-                "-",
-                "-",
-                httpRequest
-        );
-        return likeService.getAllLikes();
+        try {
+            CustomLogger.track(
+                    logger,
+                    LogType.GET_LIKES,
+                    "-",
+                    "-",
+                    httpRequest
+            );
+            return likeService.getAllLikes();
+        } catch (Exception e) {
+            errorLogger.error("Error in getAllLikes(): {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
-    // 3. 좋아요 삭제
     @DeleteMapping("/{likeId}")
     public void deleteLike(@PathVariable String likeId, HttpServletRequest httpRequest) {
-        CustomLogger.track(
-                logger,
-                LogType.DELETE_LIKE_BY_ID,
-                "/api/v1/likes/" + likeId,
-                "DELETE",
-                securityUtil.getCurrentUserId(),
-                null,
-                likeId,
-                "-",
-                httpRequest
-        );
-        likeService.deleteLike(likeId);
+        try {
+            CustomLogger.track(
+                    logger,
+                    LogType.DELETE_LIKE_BY_ID,
+                    likeId,
+                    "-",
+                    httpRequest
+            );
+            likeService.deleteLike(likeId);
+        } catch (Exception e) {
+            errorLogger.error("Error in deleteLike(): {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @GetMapping("/counts")
     public ResponseEntity<List<LikeCountDocument>> getAllLikeCounts(HttpServletRequest httpRequest) {
-        CustomLogger.track(
-                logger,
-                LogType.GET_LIKE_COUNTS, // LogType에 추가 필요
-                "/api/v1/likes/counts",
-                "GET",
-                securityUtil.getCurrentUserId(),
-                null,
-                "-",
-                "-",
-                httpRequest
-        );
-        List<LikeCountDocument> counts = likeService.getAllLikeCounts();
-        return ResponseEntity.ok(counts);
+        try {
+            // For "get all like counts", no specific targetId.
+            // The actor (userDetails.getUserId()) is logged by LogContextUtil.
+            CustomLogger.track(
+                    logger,
+                    LogType.GET_LIKE_COUNTS,
+                    "-", // targetId: No specific target
+                    "-", // payload
+                    httpRequest
+            );
+            List<LikeCountDocument> counts = likeService.getAllLikeCounts();
+            return ResponseEntity.ok(counts);
+        } catch (Exception e) {
+            errorLogger.error("Error in getAllLikeCounts(): {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteLikeByUserAndRecipe(
             @RequestBody LikeRequestDto likeRequestDto,
-            HttpServletRequest httpRequest
-    ) {
-        likeService.deleteLikeByUserAndRecipe(likeRequestDto.userId(), likeRequestDto.recipeId());
+            HttpServletRequest httpRequest) {
+        try {
+            likeService.deleteLikeByUserAndRecipe(likeRequestDto.userId(), likeRequestDto.recipeId());
 
-        CustomLogger.track(
-                logger,
-                LogType.DELETE_LIKE,
-                "/api/v1/likes",
-                "DELETE",
-                String.valueOf(likeRequestDto.userId()),
-                null,
-                String.valueOf(likeRequestDto.recipeId()),
-                "-",
-                httpRequest
-        );
+            CustomLogger.track(
+                    logger,
+                    LogType.DELETE_LIKE,
+                    String.valueOf(likeRequestDto.recipeId()),
+                    "forUserId:" + likeRequestDto.userId(),
+                    httpRequest
+            );
 
-        return ResponseEntity.noContent().build();
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            errorLogger.error("Error in deleteLikeByUserAndRecipe(): {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
-    // 4. 좋아요 상태 조회 (총 개수 + 내가 눌렀는지)
     @GetMapping("/recipe/{recipeId}/status")
     public RecipeLikeStatusResponseDto getRecipeLikeStatus(
             @PathVariable Long recipeId,
-            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "userId", required = false) Long userIdParam, // Renamed to avoid confusion with actor
             HttpServletRequest httpRequest) {
-
-        CustomLogger.track(
-                logger,
-                LogType.GET_LIKE,
-                "/api/v1/likes/recipe/" + recipeId + "/status",
-                "GET",
-                String.valueOf(userId),
-                null,
-                String.valueOf(recipeId),
-                null,
-                httpRequest
-        );
-
-        return likeService.getRecipeLikeStatus(recipeId, userId);
+        try {
+            CustomLogger.track(
+                    logger,
+                    LogType.GET_LIKE,
+                    String.valueOf(recipeId),
+                    "forUserId:" + (userIdParam != null ? String.valueOf(userIdParam) : "-"),
+                    httpRequest
+            );
+            return likeService.getRecipeLikeStatus(recipeId, userIdParam);
+        } catch (Exception e) {
+            errorLogger.error("Error in getRecipeLikeStatus(): {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @PostMapping("/recipe/status-list")
     public RecipeLikeStatusListResponseDto getLikeStatusForRecipes(
             @RequestBody RecipeLikeStatusListRequestDto requestDto,
-            HttpServletRequest httpRequest
-    ) {
-        String recipeIdsPayload = requestDto.recipeIdList().stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
-
-        CustomLogger.track(
-                logger,
-                LogType.GET_LIKE_STATUS_LIST, // LogType에 추가 필요
-                "/api/v1/likes/recipe/status-list",
-                "POST",
-                String.valueOf(requestDto.userId()),
-                null,
-                "multiple", // 대상이 여러 개임을 명시
-                "count:" + requestDto.recipeIdList().size(), // payload에 개수 등 요약 정보 기록
-                httpRequest
-        );
-        return new RecipeLikeStatusListResponseDto(likeService.getLikeStatusList(requestDto));
+            HttpServletRequest httpRequest) {
+        try {
+            String payloadInfo = "forUserId:" + requestDto.userId() +
+                    ",recipesCount:" + (requestDto.recipeIdList() != null ? requestDto.recipeIdList().size() : 0);
+            CustomLogger.track(
+                    logger,
+                    LogType.GET_LIKE_STATUS_LIST,
+                    "multipleRecipes",
+                    payloadInfo,
+                    httpRequest
+            );
+            return new RecipeLikeStatusListResponseDto(likeService.getLikeStatusList(requestDto));
+        } catch (Exception e) {
+            errorLogger.error("Error in getLikeStatusForRecipes(): {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
-    // 좋아요 수동 트리거
     @PostMapping("/aggregate")
     public ResponseEntity<Void> triggerLikeCountAggregation(HttpServletRequest httpRequest) {
-        CustomLogger.track(
-                logger,
-                LogType.TRIGGER_AGGREGATION, // LogType에 추가 필요
-                "/api/v1/likes/aggregate",
-                "POST",
-                securityUtil.getCurrentUserId(), // 관리자 기능이므로 호출자 기록이 필수
-                null,
-                "-",
-                "manual_trigger",
-                httpRequest
-        );
-        likeCountAggregationScheduler.aggregateAndSaveLikeCountsManually();
-        return ResponseEntity.ok().build();
+        try {
+            CustomLogger.track(
+                    logger,
+                    LogType.TRIGGER_AGGREGATION,
+                    "-",
+                    "manual_trigger",
+                    httpRequest
+            );
+            likeCountAggregationScheduler.aggregateAndSaveLikeCountsManually();
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            errorLogger.error("Error in triggerLikeCountAggregation(): {}", e.getMessage(), e);
+            throw e;
+        }
     }
 }
