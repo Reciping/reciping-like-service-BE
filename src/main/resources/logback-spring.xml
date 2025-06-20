@@ -30,7 +30,6 @@
     <!-- 커스텀 파일 로그 기반 Appender(LikeController 에 대한 커스텀 파일 로그 기록) -->
     <appender name="LIKE_CONTROLLER_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/LikeController.log</file>
-
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/LikeController.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>30</maxHistory> <!-- 사인업 : 30일 이상 / 겟마이 프로필 : 14일 / 업데이트마이프로필 : 14일 / 나머지 : 7일 -->
@@ -49,7 +48,7 @@
     </root>
 
     <logger name="ERROR_LOGGER" level="ERROR" additivity="false">
-        <appender-ref ref="CSV_FILE"/>          <!-- CSV 로그 (DB용) -->
+        <appender-ref ref="CSV_FILE"/>
         <appender-ref ref="JSON_STDOUT"/>
     </logger>
 

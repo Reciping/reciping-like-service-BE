@@ -1,5 +1,6 @@
 package com.three.recipinglikeservicebe.global.logger;
 
+import com.three.recipinglikeservicebe.global.security.UserDetailsImpl;
 import com.three.recipinglikeservicebe.global.util.CustomIpUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.MDC;
@@ -46,7 +47,13 @@ public class LogContextUtil {
         try {
             var authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.isAuthenticated()) return null;
-            return authentication.getName();
+
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserDetailsImpl userDetails) {
+                return String.valueOf(userDetails.getUserId()); // ← 여기서 명확히 String 변환
+            }
+
+            return null;
         } catch (Exception e) {
             return null;
         }
