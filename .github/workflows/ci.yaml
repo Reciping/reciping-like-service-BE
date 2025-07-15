@@ -1,0 +1,66 @@
+name: Reciping-Like-Service CI & Release (Develop)
+
+on:
+  push:
+    branches:
+      - develop # develop 브랜치에 푸시될 때 워크플로우를 실행합니다.
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: reciping-like-service
+
+jobs:
+  build-and-release:
+    name: Build, Tag, and Release to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          # 모든 태그와 히스토리를 가져오기 위해 fetch-depth: 0 설정
+          fetch-depth: 0
+
+      - name: Set up Git config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get latest version tag and increment
+        id: get-next-tag
+        run: |
+          latest_tag=$(git tag --sort=-v:refname | grep '^v' | head -n 1)
+          echo "Latest tag: $latest_tag"
+
+          if [ -z "$latest_tag" ]; then
+            latest_tag="v0.0.0"
+          fi
+
+          # awk를 사용하여 패치 버전만 1 증가시킵니다. (예: v1.2.3 -> v1.2.4)
+          next_tag=$(echo $latest_tag | awk -F. -v OFS=. '{print $1, $2, $3+1}')
+          echo "Next version tag: $next_tag"
+          echo "next_tag=$next_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.get-next-tag.outputs.next_tag }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Create and push new Git tag
+        run: |
+          git tag ${{ steps.get-next-tag.outputs.next_tag }}
+          git push origin ${{ steps.get-next-tag.outputs.next_tag }}
