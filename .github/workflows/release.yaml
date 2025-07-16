@@ -1,0 +1,52 @@
+name: Reciping-FE Deploy Trigger (main)
+
+on:
+  push:
+    branches:
+      - main # main 브랜치에 푸시/머지될 때 배포를 트리거합니다.
+
+jobs:
+  trigger-deploy:
+    name: Update K8s Manifests to Trigger Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout App Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Git 태그 기록을 모두 가져오기 위해 필요합니다.
+
+      - name: Get latest version tag
+        id: get-tag
+        run: |
+          # 이 레포지토리의 가장 최신 버전 태그를 찾습니다.
+          latest_tag=$(git tag --sort=-v:refname | grep '^v' | head -n 1)
+          if [ -z "$latest_tag" ]; then
+            echo "Error: No version tag found. A versioned image from 'develop' branch must exist first."
+            exit 1
+          fi
+          echo "Found latest tag to deploy: $latest_tag"
+          echo "tag=$latest_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Clone Kubernetes manifests repository
+        uses: actions/checkout@v3
+        with:
+          repository: Reciping/reciping-k8s-resources # Helm 차트 레포지토리 주소
+          path: ./reciping-k8s-resources
+          token: ${{ secrets.HELM_REPO_PAT }} # 다른 레포지토리에 쓰기 위한 PAT
+
+      - name: Update image tag in Helm values
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+          yq e '.image.tag = "${{ steps.get-tag.outputs.tag }}"' -i ./reciping-k8s-resources/reciping-like-service/values.yaml
+
+      - name: Commit and push to manifests repository
+        run: |
+          cd ./reciping-k8s-resources
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if ! git diff --staged --quiet; then
+            git commit -m "Deploy reciping-like-service to version ${{ steps.get-tag.outputs.tag }}"
+            git push
+          fi
