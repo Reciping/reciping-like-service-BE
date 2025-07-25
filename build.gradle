@@ -58,7 +58,7 @@ dependencies {
     // Test
     testImplementation 'org.testcontainers:mongodb:1.19.0'
     testImplementation 'org.testcontainers:junit-jupiter:1.19.0'
-    //heathCheck
+    // HeathCheck
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }
 
