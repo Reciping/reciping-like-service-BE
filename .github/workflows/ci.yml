@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REGISTRY: 082808744580.dkr.ecr.ap-northeast-2.amazonaws.com
+  ECR_REGISTRY: 892117097999.dkr.ecr.ap-northeast-2.amazonaws.com
   ECR_REPOSITORY: reciping-like-service
   JAVA_VERSION: '17'
 
